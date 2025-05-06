@@ -25,6 +25,8 @@ import android.media.audiofx.NoiseSuppressor;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
+
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -124,8 +126,7 @@ public class FlautoRecorderEngine
 
     }
 
-    void closeAudioDataFile2(String filepath2) throws Exception
-    {
+    void closeAudioDataFile2(String filepath2) throws Exception {
 
         if (outputStream2 != null) {
             outputStream2.close();
@@ -147,7 +148,6 @@ public class FlautoRecorderEngine
                 fh.close();
             }
         }
-
     }
 
     int[] tabCodec =
@@ -259,7 +259,7 @@ public class FlautoRecorderEngine
 
                     if (outputStream2 != null) {
                         outputStream2.write(byteBuffer.array(), 0, ln);
-                        if(System.currentTimeMillis() - startTime > 4500) {
+                        if (System.currentTimeMillis() - startTime > 4500) {
                             Log.e("TAG", "close outputStream2");
                             closeAudioDataFile2(filePath2);
                             outputStream2 = null;
@@ -497,45 +497,105 @@ public class FlautoRecorderEngine
 
     }
 
-    int writeData(
-            t_CODEC codec,
-            Integer numChannels,
-            Boolean interleaved,
-            int bufferSize) {
+//    int writeData(
+//            t_CODEC codec,
+//            Integer numChannels,
+//            Boolean interleaved,
+//            int bufferSize) {
+//        int n = 0;
+//        while (isRecording) {
+//            try {
+//
+//                if (codec == t_CODEC.pcm16 || codec == t_CODEC.pcm16WAV) {
+//                    n = writeData16(codec, numChannels, interleaved
+//                            , bufferSize);
+//                } else if (interleaved) {
+//                    n = writeData32Interleaved(codec, numChannels, interleaved
+//                            , bufferSize);
+//                } else {
+//                    n = writeData32(codec, numChannels, interleaved
+//                            , bufferSize);
+//                }
+//
+//                if (isRecording)
+//                    mainHandler.post(p);
+//                if (n == 0)
+//                    break;
+//            } catch (Exception e) {
+//                System.out.println(e);
+//                break;
+//            }
+//        }
+//        //if (isRecording)
+//        //mainHandler.post(p);
+//        return 1;
+//    }
+
+    int writeData(int bufferSize) {
         int n = 0;
+        int r = 0;
         while (isRecording) {
+            //ShortBuffer shortBuffer = ShortBuffer.allocate(bufferSize/2);
+            ByteBuffer byteBuffer = ByteBuffer.allocate(bufferSize);
             try {
+                // gets the voice output from microphone to byte format
+                if (Build.VERSION.SDK_INT >= 23) {
+                    n = recorder.read(byteBuffer.array(), 0, bufferSize, AudioRecord.READ_NON_BLOCKING);
 
-                if (codec == t_CODEC.pcm16 || codec == t_CODEC.pcm16WAV) {
-                    n = writeData16(codec, numChannels, interleaved
-                            , bufferSize);
-                } else if (interleaved) {
-                    n = writeData32Interleaved(codec, numChannels, interleaved
-                            , bufferSize);
                 } else {
-                    n = writeData32(codec, numChannels, interleaved
-                            , bufferSize);
+                    n = recorder.read(byteBuffer.array(), 0, bufferSize);
                 }
+                final int ln = n;//2 * n;
 
-                if (isRecording)
-                    mainHandler.post(p);
-                if (n == 0)
+                if (n > 0) {
+                    totalBytes += n;
+                    r += n;
+                    if (outputStream != null) {
+                        outputStream.write(byteBuffer.array(), 0, ln);
+                    } else {
+                        mainHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+
+                                session.recordingData(Arrays.copyOfRange(byteBuffer.array(), 0, ln));
+                            }
+                        });
+                    }
+                    if (outputStream2 != null) {
+                        outputStream2.write(byteBuffer.array(), 0, ln);
+                        if (System.currentTimeMillis() - startTime > 4500) {
+                            Log.e("TAG", "close outputStream2");
+                            closeAudioDataFile2(filePath2);
+                            outputStream2 = null;
+                        }
+                    }
+                    for (int i = 0; i < n / 2; ++i) {
+                        short curSample = getShort(byteBuffer.array()[i * 2], byteBuffer.array()[i * 2 + 1]);
+                        if (curSample > maxAmplitude) {
+                            maxAmplitude = curSample;
+                        }
+                    }
+                } else {
+                    break;
+                }
+                if (Build.VERSION.SDK_INT < 23) // We must break the loop, because n is always 1024 (READ_BLOCKING_MODE)
                     break;
             } catch (Exception e) {
                 System.out.println(e);
                 break;
             }
         }
-        //if (isRecording)
-        //mainHandler.post(p);
-        return 1;
+        if (isRecording)
+            mainHandler.post(p);
+
+        return r;
+
     }
 
 
     public void _startRecorder
             (
                     Integer numChannels,
-
                     Boolean interleaved,
                     Integer sampleRate,
                     Integer bitRate,
@@ -572,16 +632,10 @@ public class FlautoRecorderEngine
         );
 
         if (recorder.getState() == AudioRecord.STATE_INITIALIZED) {
-            if (noiseSuppression) {
-                NoiseSuppressor.create(recorder.getAudioSessionId());
-            }
-            if (echoCancellation) {
-                AcousticEchoCanceler.create(recorder.getAudioSessionId());
-            }
             recorder.startRecording();
             isRecording = true;
             try {
-                writeAudioDataToFile(codec, sampleRate, numChannels, path);
+                writeAudioDataToFile(codec, sampleRate, path);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -590,7 +644,7 @@ public class FlautoRecorderEngine
                 public void run() {
 
                     if (isRecording) {
-                        int n = writeData(codec, numChannels, interleaved, bufLn);
+                        int n = writeData(bufLn);
 
                     }
                 }

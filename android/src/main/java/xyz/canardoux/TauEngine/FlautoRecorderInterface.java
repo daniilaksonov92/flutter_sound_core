@@ -19,31 +19,35 @@ package xyz.canardoux.TauEngine;
  */
 
 import java.io.IOException;
+
 import xyz.canardoux.TauEngine.Flauto.t_CODEC;
 
 
-public interface FlautoRecorderInterface
-{
-	public void _startRecorder
-		(
-			Integer numChannels,
-			Boolean interleaved,
-			Integer sampleRate,
-			Integer bitRate,
-			Integer bufferSize,
-			t_CODEC codec,
-			String path,
-			int audioSource,
-			boolean							noiseSuppression,
-			boolean							echoCancellation,
+public interface FlautoRecorderInterface {
+    public void _startRecorder
+            (
+                    Integer numChannels,
+                    Boolean interleaved,
+                    Integer sampleRate,
+                    Integer bitRate,
+                    Integer bufferSize,
+                    t_CODEC codec,
+                    String path,
+                    int audioSource,
+                    boolean noiseSuppression,
+                    boolean echoCancellation,
 
-			FlautoRecorder session
-		)
-		throws
-		IOException, Exception;
-	public void _stopRecorder (  ) throws Exception;
-	public boolean pauseRecorder( );
-	public boolean resumeRecorder(  );
-	public double getMaxAmplitude ();
+                    FlautoRecorder session
+            )
+            throws
+            IOException, Exception;
+
+    public void _stopRecorder() throws Exception;
+
+    public boolean pauseRecorder();
+
+    public boolean resumeRecorder();
+
+    public double getMaxAmplitude();
 
 }
