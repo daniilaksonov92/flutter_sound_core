@@ -71,7 +71,7 @@ public class FlautoRecorderEngine
         return (short) (argB1 | (argB2 << 8));
     }
 
-    private void writeAudioDataToFile(t_CODEC codec, int sampleRate, int numChannels, String aFilePath) throws IOException {
+    private void writeAudioDataToFile(t_CODEC codec, int sampleRate, String aFilePath) throws IOException {
         // Write the output audio in byte
         System.out.println("---> writeAudioDataToFile");
         totalBytes = 0;
@@ -88,7 +88,7 @@ public class FlautoRecorderEngine
                 FlautoWaveHeader header = new FlautoWaveHeader
                         (
                                 FlautoWaveHeader.FORMAT_PCM,
-                                (short) numChannels,
+                                (short) 1,
                                 sampleRate,
                                 (short) 16,
                                 100000 // total number of bytes // Will be orverwritten when stop()
