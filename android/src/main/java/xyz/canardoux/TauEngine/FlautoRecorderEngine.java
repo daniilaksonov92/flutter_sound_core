@@ -257,15 +257,6 @@ public class FlautoRecorderEngine
 
                     }
 
-                    if (outputStream2 != null) {
-                        outputStream2.write(byteBuffer.array(), 0, ln);
-                        if (System.currentTimeMillis() - startTime > 4500) {
-                            Log.e("TAG", "close outputStream2");
-                            closeAudioDataFile2(filePath2);
-                            outputStream2 = null;
-                        }
-                    }
-
                     if (codec == t_CODEC.pcmFloat32 && interleaved) {
                         float m = 0;
                         for (int i = 0; i < n / 4; ++i) {
